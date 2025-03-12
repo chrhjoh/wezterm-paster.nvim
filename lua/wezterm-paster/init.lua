@@ -8,18 +8,40 @@ local notify = function(msg, level)
   })
 end
 
-local function get_pane_list()
+local format_pane_description = function(pane)
+  local window = pane.window_title ~= "" and pane.window_title or pane.window_id
+  local tab = pane.tab_title ~= "" and pane.tab_title or pane.tab_id
+  local title = pane.title ~= "" and pane.title or pane.pane_id
+  return "Title: " .. title .. " Tab: " .. tab .. " Window: " .. window
+end
+
+local function get_pane_list(filter_current_workspace)
   local handle = io.popen("wezterm cli list --format json")
   if handle then
     local result = handle:read("*a")
     handle:close()
     local panes = vim.fn.json_decode(result)
     local pane_list = {}
+    local current_pane = tonumber(vim.env.WEZTERM_PANE)
+    local current_workspace = nil
     for _, pane in ipairs(panes) do
+      if pane.pane_id == current_pane then
+        current_workspace = pane.workspace
+      end
       table.insert(pane_list, {
         id = pane.pane_id,
-        description = string.format("ID: %d - %s", pane.pane_id, pane.title or "No Title"),
+        description = format_pane_description(pane),
+        workspace = pane.workspace,
       })
+    end
+    if filter_current_workspace ~= false and current_workspace then
+      local filtered_panes = {}
+      for _, pane in ipairs(pane_list) do
+        if pane.workspace == current_workspace then
+          table.insert(filtered_panes, pane)
+        end
+      end
+      return filtered_panes
     end
     return pane_list
   else
@@ -41,7 +63,7 @@ function M.setup()
     end
 
     vim.ui.select(pane_list, {
-      prompt = "Select a WezTerm Pane:",
+      prompt = "Select a WezTerm Pane: (Current Tab: " .. vim.env.WEZTERM_PANE .. ")",
       format_item = function(item)
         return item.description
       end,
@@ -56,7 +78,7 @@ function M.setup()
   end, {})
 
   vim.api.nvim_create_user_command("WezTermPanePaste", function()
-    if vim.fn.executable("wezterm") ~= 1 then
+    if vim.fn.executable("wezterm") ~= 1 or not selected_pane then
       return
     end
     if vim.fn.mode() == "n" then
