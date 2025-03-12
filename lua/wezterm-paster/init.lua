@@ -9,10 +9,10 @@ local notify = function(msg, level)
 end
 
 local format_pane_description = function(pane)
-  local window = pane.window_title ~= "" and pane.window_title or pane.window_id
-  local tab = pane.tab_title ~= "" and pane.tab_title or pane.tab_id
-  local title = pane.title ~= "" and pane.title or pane.pane_id
-  return "Title: " .. title .. " Tab: " .. tab .. " Window: " .. window
+  local window = pane.window_title ~= "" and pane.window_title .. " (" .. pane.window_id .. ")" or pane.window_id
+  local tab = pane.tab_title ~= "" and pane.tab_title .. " (" .. pane.tab_id .. ")" or pane.tab_id
+  local title = pane.title ~= "" and pane.title .. " (" .. pane.pane_id .. ")" or pane.pane_id
+  return "Title: " .. title .. " - Tab: " .. tab .. " - Window: " .. window
 end
 
 local function get_pane_list(filter_current_workspace)
